@@ -77,6 +77,7 @@ rtsp_reader_req_line_state_method_begin(rtsp_reader_t* rd, uint8_t c)
     rd->method.len = 1;
 
     rd->sub_state = rtsp_reader_req_line_state_method_middle;
+    RTSP_PUSH(rd, c);
     return 0;
   }
 
@@ -95,6 +96,7 @@ rtsp_reader_req_line_state_method_middle(rtsp_reader_t* rd, uint8_t c)
   if(is_rfc7826_token(c) == RTSP_TRUE)
   {
     rd->method.len++;
+    RTSP_PUSH(rd, c);
     return 0;
   }
 
@@ -110,6 +112,7 @@ rtsp_reader_req_line_state_uri_begin(rtsp_reader_t* rd, uint8_t c)
     rd->uri.len = 1;
 
     rd->sub_state = rtsp_reader_req_line_state_uri_middle;
+    RTSP_PUSH(rd, c);
     return 0;
   }
 
@@ -126,6 +129,7 @@ rtsp_reader_req_line_state_uri_middle(rtsp_reader_t* rd, uint8_t c)
   }
 
   rd->uri.len++;
+  RTSP_PUSH(rd, c);
   return 0;
 }
 
@@ -138,6 +142,7 @@ rtsp_reader_req_line_state_ver_begin(rtsp_reader_t* rd, uint8_t c)
     rd->ver.len = 1;
 
     rd->sub_state = rtsp_reader_req_line_state_ver_middle;
+    RTSP_PUSH(rd, c);
     return 0;
   }
 
@@ -154,6 +159,7 @@ rtsp_reader_req_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
   }
 
   rd->ver.len++;
+  RTSP_PUSH(rd, c);
   return 0;
 }
 
@@ -192,6 +198,7 @@ rtsp_reader_header_state_header_name_begin(rtsp_reader_t* rd, uint8_t c)
   rd->headers[rd->num_headers].v.len = 0;
 
   rd->sub_state = rtsp_reader_header_state_header_name_middle;
+  RTSP_PUSH(rd, c);
   return 0;
 }
 
@@ -211,6 +218,7 @@ rtsp_reader_header_state_header_name_middle(rtsp_reader_t* rd, uint8_t c)
   }
 
   rd->headers[rd->num_headers].h.len++;
+  RTSP_PUSH(rd, c);
   return 0;
 }
 
@@ -248,6 +256,7 @@ rtsp_reader_header_state_header_name_after_colon(rtsp_reader_t* rd, uint8_t c)
   rd->headers[rd->num_headers].v.len = 1;
 
   rd->sub_state = rtsp_reader_header_state_header_value;
+  RTSP_PUSH(rd, c);
   return 0;
 }
 
@@ -255,6 +264,7 @@ static int
 rtsp_reader_header_state_header_value(rtsp_reader_t* rd, uint8_t c)
 {
   rd->headers[rd->num_headers].v.len++;
+  RTSP_PUSH(rd, c);
   return 0;
 }
 
@@ -285,8 +295,6 @@ rtsp_reader_start_line_begin(rtsp_reader_t* rd, uint8_t c)
   }
 
   RTSP_EXEC_SUB_SATTE(rd, c);
-  RTSP_PUSH(rd, c);
-
   rd->main_state = rtsp_reader_start_line_middle;
 
   return 0;
@@ -314,7 +322,6 @@ rtsp_reader_start_line_middle(rtsp_reader_t* rd, uint8_t c)
   }
 
   RTSP_EXEC_SUB_SATTE(rd, c);
-  RTSP_PUSH(rd, c);
 
   return 0;
 }
@@ -344,7 +351,6 @@ rtsp_reader_header_line_begin(rtsp_reader_t* rd, uint8_t c)
   rd->sub_state = rtsp_reader_header_state_header_name_begin;
   RTSP_EXEC_SUB_SATTE(rd, c);
 
-  RTSP_PUSH(rd, c);
   rd->main_state = rtsp_reader_header_line_middle;
 
   return 0;
@@ -382,7 +388,6 @@ rtsp_reader_header_line_begin_or_sws(rtsp_reader_t* rd, uint8_t c)
   rd->sub_state = rtsp_reader_header_state_header_name_begin;
   RTSP_EXEC_SUB_SATTE(rd, c);
 
-  RTSP_PUSH(rd, c);
   rd->main_state = rtsp_reader_header_line_middle;
 
   return 0;
@@ -406,10 +411,8 @@ rtsp_reader_header_line_sws(rtsp_reader_t* rd, uint8_t c)
 
   // line continuation end
   RTSP_EXEC_SUB_SATTE(rd, ' ');
-  RTSP_PUSH(rd, ' ');
 
   RTSP_EXEC_SUB_SATTE(rd, c);
-  RTSP_PUSH(rd, c);
 
   rd->main_state = rtsp_reader_header_line_middle;
   return 0;
@@ -425,7 +428,6 @@ rtsp_reader_header_line_middle(rtsp_reader_t* rd, uint8_t c)
   }
 
   RTSP_EXEC_SUB_SATTE(rd, c);
-  RTSP_PUSH(rd, c);
   return 0;
 }
 
