@@ -484,6 +484,8 @@ rtsp_reader_init(rtsp_reader_t* rd)
 
   rd->body_len      = 0;
   rd->body_read     = 0;
+
+  rd->num_headers   = 0;
 }
 
 int
