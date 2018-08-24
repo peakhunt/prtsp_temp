@@ -94,6 +94,48 @@ test_rtsp_reader2(void)
   CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "header3-value") == RTSP_TRUE);
 }
 
+static void
+test_rtsp_reader3(void)
+{
+  rtsp_reader_t   reader;
+  int             ret;
+  static const char* test_msg1 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 332\r\n" \
+  "Zolla:\r\n" \
+  " Cool\r\n" \
+  " Lala\r\n" \
+  "\r\n";
+
+  rtsp_reader_init(&reader);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
+  CU_ASSERT(ret == 0);
+
+  CU_ASSERT(rtsp_str_cmp(&reader.method, "ANNOUNCE") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.uri, "rtsp://example.com/media.mp4") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
+
+  CU_ASSERT(reader.num_headers == 6);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "CSeq") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].h, "Date") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].h, "Session") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].h, "Content-Type") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].h, "Content-Length") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[5].h, "Zolla") == RTSP_TRUE);
+
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].v, "7") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "23 Jan 1997 15:35:06 GMT") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "12345678") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].v, "application/sdp") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "332") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[5].v, "Cool Lala") == RTSP_TRUE);
+}
+
 int
 main()
 {
@@ -113,6 +155,7 @@ main()
 
   CU_add_test(pSuite, "test_rtsp_reader1", test_rtsp_reader1);
   CU_add_test(pSuite, "test_rtsp_reader2", test_rtsp_reader2);
+  CU_add_test(pSuite, "test_rtsp_reader3", test_rtsp_reader3);
 
   /* Run all tests using the basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);
