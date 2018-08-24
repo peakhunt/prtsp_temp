@@ -18,15 +18,16 @@
 
 typedef enum
 {
-  rtsp_reader_state_idle,
-  rtsp_reader_state_idle_cr,
   rtsp_reader_state_start_line_begin,
+  rtsp_reader_state_start_line_ignore_lr,
   rtsp_reader_state_start_line_middle,
   rtsp_reader_state_start_line_end,
+
   rtsp_reader_state_header_line_begin,
   rtsp_reader_state_header_line_middle,
   rtsp_reader_state_header_line_end,
   rtsp_reader_state_headers_end,
+
   rtsp_reader_state_body,
 } rtsp_reader_state_t;
 

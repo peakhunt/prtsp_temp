@@ -49,38 +49,6 @@ is_rfc7826_token(uint8_t c)
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// parsing handlers for idle
-//
-////////////////////////////////////////////////////////////////////////////////
-static inline int
-rtsp_reader_idle(rtsp_reader_t* rd, uint8_t c)
-{
-  if(c == '\r')
-  {
-    rd->state = rtsp_reader_state_idle_cr;
-  }
-  else
-  {
-    RTSP_PUSH(rd, c);
-    rd->state = rtsp_reader_state_start_line_begin;
-  }
-  return 0;
-}
-
-static inline int
-rtsp_reader_idle_cr(rtsp_reader_t* rd, uint8_t c)
-{
-  if(c == '\n')
-  {
-    rd->state = rtsp_reader_state_idle;
-    return 0;
-  }
-
-  RTSP_ERR(rd, -1, "NL expected at rtsp_reader_state_idle_cr");
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
 // parsing handlers for start line
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -89,12 +57,25 @@ rtsp_reader_start_line_begin(rtsp_reader_t* rd, uint8_t c)
 {
   if(c == '\r')
   {
-    RTSP_ERR(rd, -1, "got CR at rtsp_reader_state_start_line_begin");
+    rd->state = rtsp_reader_state_start_line_ignore_lr;
+    return 0;
   }
 
   RTSP_PUSH(rd, c);
   rd->state = rtsp_reader_state_start_line_middle;
 
+  return 0;
+}
+
+static inline int
+rtsp_reader_start_line_ignore_lr(rtsp_reader_t* rd, uint8_t c)
+{
+  if(c != '\n')
+  {
+    RTSP_ERR(rd, -1, "NL expected at rtsp_reader_start_line_ignore_lr");
+  }
+
+  rd->state = rtsp_reader_state_start_line_begin;
   return 0;
 }
 
@@ -116,6 +97,8 @@ rtsp_reader_start_line_end(rtsp_reader_t* rd, uint8_t c)
 {
   if(c == '\n')
   {
+    // FIXME check start line
+
     rd->state = rtsp_reader_state_header_line_begin;
     return 0;
   }
@@ -162,6 +145,8 @@ rtsp_reader_header_line_end(rtsp_reader_t* rd, uint8_t c)
 {
   if(c == '\n')
   {
+    // FIXME check header line
+
     rd->state = rtsp_reader_state_header_line_begin;
     return 0;
   }
@@ -174,6 +159,8 @@ rtsp_reader_headers_end(rtsp_reader_t* rd, uint8_t c)
 {
   if(c == '\n')
   {
+    // FIXME check message integrity
+
     rd->state = rtsp_reader_state_body;
     return 0;
   }
@@ -201,7 +188,7 @@ void
 rtsp_reader_init(rtsp_reader_t* rd)
 {
   rd->ndx     = 0;
-  rd->state   = rtsp_reader_state_idle;
+  rd->state   = rtsp_reader_state_start_line_begin;
   rd->err_msg = NULL;
 
   rd->body_len  = 0;
@@ -213,10 +200,8 @@ rtsp_reader_feed(rtsp_reader_t* rd, uint8_t* buf, uint32_t len)
 {
   static const int (*_handlers[])(rtsp_reader_t* rd, uint8_t c) =
   {
-    rtsp_reader_idle,
-    rtsp_reader_idle_cr,
-
     rtsp_reader_start_line_begin,
+    rtsp_reader_start_line_ignore_lr,
     rtsp_reader_start_line_middle,
     rtsp_reader_start_line_end,
 
