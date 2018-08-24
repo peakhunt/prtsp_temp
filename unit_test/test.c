@@ -62,7 +62,9 @@ test_rtsp_reader2(void)
 
   static const char* test_msg2 = \
   "RTSP/2.0\r\n"\
-  "header1: header1-value\r\n" \
+  "header1: header1-value\r\n";
+
+  static const char* test_msg3 = \
   "header2: header2-value\r\n" \
   "header3: header3-value\r\n" \
   "\r\n";
@@ -73,6 +75,9 @@ test_rtsp_reader2(void)
   CU_ASSERT(ret == 0);
 
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg2, strlen(test_msg2));
+  CU_ASSERT(ret == 0);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg3, strlen(test_msg3));
   CU_ASSERT(ret == 0);
 
   CU_ASSERT(rtsp_str_cmp(&reader.method, "PLAY") == RTSP_TRUE);

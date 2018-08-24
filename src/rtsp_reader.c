@@ -409,7 +409,10 @@ rtsp_reader_header_line_sws(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
+  //
   // line continuation end
+  // SWS is replaced with single SP
+  //
   RTSP_EXEC_SUB_SATTE(rd, ' ');
 
   RTSP_EXEC_SUB_SATTE(rd, c);
