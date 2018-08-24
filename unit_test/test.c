@@ -21,19 +21,41 @@ test_rtsp_reader1(void)
   "\r\n" \
   "\r\n" \
   "PLAY rtsp://test.rtsp.com RTSP/2.0\r\n"\
-  "header1: header1-value\r\n"
-  "header2: header2-value\r\n"
-  "header3: header3-value\r\n"
+  "header1: header1-value\r\n" \
+  "header2: header2-value\r\n" \
+  "header3: header3-value\r\n" \
+  "header4: header4-value\r\n" \
+  " \t             -value\r\n" \
+  "header5: header5-value\r\n" \
   "\r\n";
 
   rtsp_reader_init(&reader);
 
-  ret = rtsp_reader_feed(&reader, (uint8_t*)test_msg, strlen(test_msg));
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg, strlen(test_msg));
   CU_ASSERT(ret == 0);
   CU_ASSERT(strncmp((char*)&reader.msg[0], "PLAY rtsp://test.rtsp.com RTSP/2.0", 34) == 0);
   CU_ASSERT(strncmp((char*)&reader.msg[34], "header1: header1-value", 22) == 0);
   CU_ASSERT(strncmp((char*)&reader.msg[56], "header2: header2-value", 22) == 0);
   CU_ASSERT(strncmp((char*)&reader.msg[78], "header3: header3-value", 22) == 0);
+  CU_ASSERT(strncmp((char*)&reader.msg[100], "header4: header4-value -value", 29) == 0);
+  CU_ASSERT(strncmp((char*)&reader.msg[129], "header5: header5-value", 22) == 0);
+
+  CU_ASSERT(rtsp_str_cmp(&reader.method, "PLAY") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.uri, "rtsp://test.rtsp.com") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
+
+  CU_ASSERT(reader.num_headers == 5);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "header1") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].h, "header2") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].h, "header3") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].h, "header4") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].h, "header5") == RTSP_TRUE);
+
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].v, "header1-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "header2-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "header3-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].v, "header4-value -value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "header5-value") == RTSP_TRUE);
 }
 
 static void
@@ -46,17 +68,17 @@ test_rtsp_reader2(void)
 
   static const char* test_msg2 = \
   "RTSP/2.0\r\n"\
-  "header1: header1-value\r\n"
-  "header2: header2-value\r\n"
-  "header3: header3-value\r\n"
+  "header1: header1-value\r\n" \
+  "header2: header2-value\r\n" \
+  "header3: header3-value\r\n" \
   "\r\n";
 
   rtsp_reader_init(&reader);
 
-  ret = rtsp_reader_feed(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
   CU_ASSERT(ret == 0);
 
-  ret = rtsp_reader_feed(&reader, (uint8_t*)test_msg2, strlen(test_msg2));
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg2, strlen(test_msg2));
   CU_ASSERT(ret == 0);
 
   CU_ASSERT(strncmp((char*)&reader.msg[0], "PLAY rtsp://test.rtsp.com RTSP/2.0", 34) == 0);
