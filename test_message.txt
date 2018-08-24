@@ -1,0 +1,41 @@
+aheader_:__a-value
+
+aheader_:__________a-value
+
+aheader_:
+_a-value
+
+aheader_:
+_________a-value
+
+
+aheader_:___"_
+_________a-value
+_________"
+
+
+
+
+=========================================================================
+a) SWS is supposed to be replaced by a single SP
+b) LWS is not supposed to be replaced by a single SP
+=========================================================================
+extension-header  =  header-name HCOLON header-value
+
+header-name   = token
+
+header-value = *(TEXT-UTF8char / LWS)
+  
+TEXT-UTF8char    =  %x21-7E / UTF8-NONASCII
+
+LWS             =  [CRLF] 1*( SP / HT )
+
+SWS             =  [LWS]
+
+token           =  1*(%x21 / %x23-27 / %x2A-2B / %x2D-2E / %x30-39
+                   /  %x41-5A / %x5E-7A / %x7C / %x7E)
+
+HCOLON          =  *( SP / HT ) ":" SWS
+
+space is 0x20
+
