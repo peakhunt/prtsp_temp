@@ -87,7 +87,7 @@ rtsp_reader_req_line_state_method_begin(rtsp_reader_t* rd, uint8_t c)
 static int
 rtsp_reader_req_line_state_method_middle(rtsp_reader_t* rd, uint8_t c)
 {
-  if(c == ' ' || c == '\t')
+  if(c == ' ')
   {
     rd->sub_state = rtsp_reader_req_line_state_uri_begin;
     return 0;
@@ -122,7 +122,7 @@ rtsp_reader_req_line_state_uri_begin(rtsp_reader_t* rd, uint8_t c)
 static int
 rtsp_reader_req_line_state_uri_middle(rtsp_reader_t* rd, uint8_t c)
 {
-  if(c == ' ' || c == '\t')
+  if(c == ' ')
   {
     rd->sub_state = rtsp_reader_req_line_state_ver_begin;
     return 0;
@@ -159,6 +159,102 @@ rtsp_reader_req_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
   }
 
   rd->ver.len++;
+  RTSP_PUSH(rd, c);
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// response line parsing handlers
+//
+////////////////////////////////////////////////////////////////////////////////
+static int rtsp_reader_rsp_line_state_ver_begin(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_rsp_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_rsp_line_state_code_begin(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_rsp_line_state_code_middle(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_rsp_line_state_reason_begin(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_rsp_line_state_reason_middle(rtsp_reader_t* rd, uint8_t c);
+
+static int
+rtsp_reader_rsp_line_state_ver_begin(rtsp_reader_t* rd, uint8_t c)
+{
+  if(is_rfc7826_token(c) == RTSP_TRUE)
+  {
+    rd->ver.ptr = &rd->msg[rd->ndx];
+    rd->ver.len = 1;
+
+    rd->sub_state = rtsp_reader_rsp_line_state_ver_middle;
+    RTSP_PUSH(rd, c);
+    return 0;
+  }
+
+  RTSP_ERR(rd, -101, "invalid character in rtsp_reader_rsp_line_state_ver_begin");
+}
+
+static int
+rtsp_reader_rsp_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
+{
+  if(c == ' ')
+  {
+    rd->sub_state = rtsp_reader_rsp_line_state_code_begin;
+    return 0;
+  }
+
+  rd->ver.len++;
+  RTSP_PUSH(rd, c);
+  return 0;
+}
+
+static int
+rtsp_reader_rsp_line_state_code_begin(rtsp_reader_t* rd, uint8_t c)
+{
+  if(is_rfc7826_token(c) == RTSP_TRUE)
+  {
+    rd->code.ptr = &rd->msg[rd->ndx];
+    rd->code.len = 1;
+
+    rd->sub_state = rtsp_reader_rsp_line_state_code_middle;
+    RTSP_PUSH(rd, c);
+    return 0;
+  }
+
+  RTSP_ERR(rd, -101, "invalid character in rtsp_reader_rsp_line_state_code_begin");
+}
+
+static int
+rtsp_reader_rsp_line_state_code_middle(rtsp_reader_t* rd, uint8_t c)
+{
+  if(c == ' ')
+  {
+    rd->sub_state = rtsp_reader_rsp_line_state_reason_begin;
+    return 0;
+  }
+
+  rd->code.len++;
+  RTSP_PUSH(rd, c);
+  return 0;
+}
+
+static int
+rtsp_reader_rsp_line_state_reason_begin(rtsp_reader_t* rd, uint8_t c)
+{
+  if(is_rfc7826_token(c) == RTSP_TRUE)
+  {
+    rd->reason.ptr = &rd->msg[rd->ndx];
+    rd->reason.len = 1;
+
+    rd->sub_state = rtsp_reader_rsp_line_state_reason_middle;
+    RTSP_PUSH(rd, c);
+    return 0;
+  }
+
+  RTSP_ERR(rd, -101, "invalid character in rtsp_reader_rsp_line_state_reason_begin");
+}
+
+static int
+rtsp_reader_rsp_line_state_reason_middle(rtsp_reader_t* rd, uint8_t c)
+{
+  rd->reason.len++;
   RTSP_PUSH(rd, c);
   return 0;
 }
@@ -487,12 +583,20 @@ rtsp_reader_body(rtsp_reader_t* rd, uint8_t c)
 //
 ////////////////////////////////////////////////////////////////////////////////
 void
-rtsp_reader_init(rtsp_reader_t* rd)
+rtsp_reader_init(rtsp_reader_t* rd, uint8_t req)
 {
   rd->ndx           = 0;
 
   rd->main_state      = rtsp_reader_start_line_begin;
-  rd->sub_state       = rtsp_reader_req_line_state_method_begin;
+
+  if(req == RTSP_TRUE)
+  {
+    rd->sub_state       = rtsp_reader_req_line_state_method_begin;
+  }
+  else
+  {
+    rd->sub_state       = rtsp_reader_rsp_line_state_ver_begin;
+  }
 
   rd->err_msg       = NULL;
 

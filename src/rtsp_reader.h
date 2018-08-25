@@ -41,6 +41,10 @@ struct __rtsp_reader_t
 
   rtsp_str_t    method;
   rtsp_str_t    uri;
+
+  rtsp_str_t    code;
+  rtsp_str_t    reason;
+
   rtsp_str_t    ver;
 
   uint32_t      num_headers;
@@ -52,7 +56,7 @@ struct __rtsp_reader_t
   uint8_t       colon_parsed;
 };
 
-extern void rtsp_reader_init(rtsp_reader_t* rd);
+extern void rtsp_reader_init(rtsp_reader_t* rd, uint8_t request);
 extern int rtsp_reader_handle_input(rtsp_reader_t* rd, uint8_t* buf, uint32_t len);
 
 static inline uint8_t
