@@ -213,6 +213,7 @@ rtsp_reader_header_state_header_name_middle(rtsp_reader_t* rd, uint8_t c)
 
   if(c == ':')
   {
+    rd->colon_parsed = RTSP_TRUE;
     rd->sub_state = rtsp_reader_header_state_header_name_after_colon;
     return 0;
   }
@@ -232,6 +233,7 @@ rtsp_reader_header_state_header_name_before_colon(rtsp_reader_t* rd, uint8_t c)
 
   if(c == ':')
   {
+    rd->colon_parsed = RTSP_TRUE;
     rd->sub_state = rtsp_reader_header_state_header_name_after_colon;
     return 0;
   }
@@ -348,6 +350,8 @@ rtsp_reader_header_line_begin(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
+  rd->colon_parsed = RTSP_FALSE;
+
   rd->sub_state = rtsp_reader_header_state_header_name_begin;
   RTSP_EXEC_SUB_SATTE(rd, c);
 
@@ -373,6 +377,11 @@ rtsp_reader_header_line_begin_or_sws(rtsp_reader_t* rd, uint8_t c)
   if(c == ' ' || c == '\t')
   {
     // sws continuation
+    if(rd->colon_parsed == RTSP_FALSE)
+    {
+      RTSP_ERR(rd, -1, "Line Continuation Before Colon Detected");
+    }
+
     rd->main_state = rtsp_reader_header_line_sws;
     return 0;
   }
@@ -385,6 +394,7 @@ rtsp_reader_header_line_begin_or_sws(rtsp_reader_t* rd, uint8_t c)
   //
   // header line begin
   //
+  rd->colon_parsed = RTSP_FALSE;
   rd->sub_state = rtsp_reader_header_state_header_name_begin;
   RTSP_EXEC_SUB_SATTE(rd, c);
 
@@ -402,6 +412,12 @@ rtsp_reader_header_line_sws(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
+  //
+  // line continuation end
+  // LWS is replaced with single SP
+  //
+  RTSP_EXEC_SUB_SATTE(rd, ' ');
+
   if(c == '\r')
   {
     // another end possibility
@@ -409,14 +425,7 @@ rtsp_reader_header_line_sws(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
-  //
-  // line continuation end
-  // SWS is replaced with single SP
-  //
-  RTSP_EXEC_SUB_SATTE(rd, ' ');
-
   RTSP_EXEC_SUB_SATTE(rd, c);
-
   rd->main_state = rtsp_reader_header_line_middle;
   return 0;
 }

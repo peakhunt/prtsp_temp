@@ -26,7 +26,7 @@ test_rtsp_reader1(void)
   "header3    :      header3-value\r\n" \
   "header4       :\theader4-value\r\n" \
   " \t             -value\r\n" \
-  "header5\t:\t\t\t header5-value\r\n" \
+  "header5\t:\t\t\t header5          -value          \r\n" \
   "\r\n";
 
   rtsp_reader_init(&reader);
@@ -49,7 +49,7 @@ test_rtsp_reader1(void)
   CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "header2-value") == RTSP_TRUE);
   CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "header3-value") == RTSP_TRUE);
   CU_ASSERT(rtsp_str_cmp(&reader.headers[3].v, "header4-value -value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "header5-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "header5          -value          ") == RTSP_TRUE);
 }
 
 static void
@@ -136,6 +136,36 @@ test_rtsp_reader3(void)
   CU_ASSERT(rtsp_str_cmp(&reader.headers[5].v, "Cool Lala") == RTSP_TRUE);
 }
 
+static void test_rtsp_fail(void)
+{
+  rtsp_reader_t   reader;
+  int             ret;
+  static const char* test_msg1 = \
+  "PLAY rtsp://test.rtsp.com ";
+
+  static const char* test_msg2 = \
+  "RTSP/2.0\r\n"\
+  "header1: header1-value\r\n";
+
+  static const char* test_msg3 = \
+  "header2: header2-value\r\n" \
+  "header3: header3-value\r\n" \
+  "abnormal-but-accepted   \r\n" \
+  " : this is ok with this implementation\r\n" \
+  "\r\n";
+
+  rtsp_reader_init(&reader);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
+  CU_ASSERT(ret == 0);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg2, strlen(test_msg2));
+  CU_ASSERT(ret == 0);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg3, strlen(test_msg3));
+  CU_ASSERT(ret != 0);
+}
+
 int
 main()
 {
@@ -156,6 +186,7 @@ main()
   CU_add_test(pSuite, "test_rtsp_reader1", test_rtsp_reader1);
   CU_add_test(pSuite, "test_rtsp_reader2", test_rtsp_reader2);
   CU_add_test(pSuite, "test_rtsp_reader3", test_rtsp_reader3);
+  CU_add_test(pSuite, "test_rtsp_fail", test_rtsp_fail);
 
   /* Run all tests using the basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);

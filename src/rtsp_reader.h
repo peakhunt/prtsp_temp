@@ -10,10 +10,6 @@
 #define RTSP_TRUE   1
 #define RTSP_FALSE  0
 
-//
-// XXX Note
-//
-
 typedef struct
 {
   uint8_t*    ptr;
@@ -49,6 +45,11 @@ struct __rtsp_reader_t
 
   uint32_t      num_headers;
   rtsp_hv_t     headers[RTSP_CONFIG_MAX_HEADERS];
+
+  //
+  // temporary states for header parsing
+  //
+  uint8_t       colon_parsed;
 };
 
 extern void rtsp_reader_init(rtsp_reader_t* rd);
