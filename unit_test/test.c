@@ -13,6 +13,11 @@ int clean_suite_success(void) { return 0; }
 int clean_suite_failure(void) { return -1; }
 
 static void
+dummy_rtsp_rx_callback(rtsp_reader_t* rd, rtsp_msg_t* m)
+{
+}
+
+static void
 test_rtsp_reader1(void)
 {
   rtsp_reader_t   reader;
@@ -29,27 +34,29 @@ test_rtsp_reader1(void)
   "header5\t:\t\t\t header5          -value          \r\n" \
   "\r\n";
 
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
+
   rtsp_reader_init(&reader, RTSP_TRUE);
 
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg, strlen(test_msg));
   CU_ASSERT(ret == 0);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.method, "PLAY") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.uri, "rtsp://test.rtsp.com") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.method, "PLAY") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.uri, "rtsp://test.rtsp.com") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.ver, "RTSP/2.0") == RTSP_TRUE);
 
-  CU_ASSERT(reader.num_headers == 5);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "header1") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].h, "header2") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].h, "header3") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].h, "header4") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].h, "header5") == RTSP_TRUE);
+  CU_ASSERT(reader.current.num_headers == 5);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].h, "header1") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].h, "header2") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].h, "header3") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[3].h, "header4") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[4].h, "header5") == RTSP_TRUE);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].v, "header1-value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "header2-value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "header3-value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].v, "header4-value -value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "header5          -value          ") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].v, "header1-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].v, "header2-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].v, "header3-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[3].v, "header4-value -value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[4].v, "header5          -value          ") == RTSP_TRUE);
 }
 
 static void
@@ -69,6 +76,8 @@ test_rtsp_reader2(void)
   "header3: header3-value\r\n" \
   "\r\n";
 
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
+
   rtsp_reader_init(&reader, RTSP_TRUE);
 
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
@@ -80,18 +89,18 @@ test_rtsp_reader2(void)
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg3, strlen(test_msg3));
   CU_ASSERT(ret == 0);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.method, "PLAY") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.uri, "rtsp://test.rtsp.com") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.method, "PLAY") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.uri, "rtsp://test.rtsp.com") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.ver, "RTSP/2.0") == RTSP_TRUE);
 
-  CU_ASSERT(reader.num_headers == 3);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "header1") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].h, "header2") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].h, "header3") == RTSP_TRUE);
+  CU_ASSERT(reader.current.num_headers == 3);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].h, "header1") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].h, "header2") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].h, "header3") == RTSP_TRUE);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].v, "header1-value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "header2-value") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "header3-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].v, "header1-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].v, "header2-value") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].v, "header3-value") == RTSP_TRUE);
 }
 
 static void
@@ -111,29 +120,31 @@ test_rtsp_reader3(void)
   " Lala\r\n" \
   "\r\n";
 
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
+
   rtsp_reader_init(&reader, RTSP_TRUE);
 
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
   CU_ASSERT(ret == 0);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.method, "ANNOUNCE") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.uri, "rtsp://example.com/media.mp4") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.method, "ANNOUNCE") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.uri, "rtsp://example.com/media.mp4") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.ver, "RTSP/2.0") == RTSP_TRUE);
 
-  CU_ASSERT(reader.num_headers == 6);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "CSeq") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].h, "Date") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].h, "Session") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].h, "Content-Type") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].h, "Content-Length") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[5].h, "Zolla") == RTSP_TRUE);
+  CU_ASSERT(reader.current.num_headers == 6);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].h, "CSeq") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].h, "Date") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].h, "Session") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[3].h, "Content-Type") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[4].h, "Content-Length") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[5].h, "Zolla") == RTSP_TRUE);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].v, "7") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "23 Jan 1997 15:35:06 GMT") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "12345678") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].v, "application/sdp") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "332") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[5].v, "Cool Lala") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].v, "7") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].v, "23 Jan 1997 15:35:06 GMT") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].v, "12345678") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[3].v, "application/sdp") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[4].v, "332") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[5].v, "Cool Lala") == RTSP_TRUE);
 }
 
 static void
@@ -153,30 +164,31 @@ test_rtsp_reader4(void)
   " Lala\r\n" \
   "\r\n";
 
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
+
   rtsp_reader_init(&reader, RTSP_FALSE);
 
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
   CU_ASSERT(ret == 0);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.code, "100") == RTSP_TRUE);
-  //CU_ASSERT(rtsp_str_cmp(&reader.reason, "Reason is blah blah blah") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.reason, "Reason is blah blah blah \t\t blahblahblah  \t\t") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.ver, "RTSP/2.0") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.code, "100") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.reason, "Reason is blah blah blah \t\t blahblahblah  \t\t") == RTSP_TRUE);
 
-  CU_ASSERT(reader.num_headers == 6);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "CSeq") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].h, "Date") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].h, "Session") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].h, "Content-Type") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].h, "Content-Length") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[5].h, "Zolla") == RTSP_TRUE);
+  CU_ASSERT(reader.current.num_headers == 6);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].h, "CSeq") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].h, "Date") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].h, "Session") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[3].h, "Content-Type") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[4].h, "Content-Length") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[5].h, "Zolla") == RTSP_TRUE);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[0].v, "7") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[1].v, "23 Jan 1997 15:35:06 GMT") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[2].v, "12345678") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[3].v, "application/sdp") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[4].v, "332") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.headers[5].v, "Cool Lala") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[0].v, "7") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[1].v, "23 Jan 1997 15:35:06 GMT") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[2].v, "12345678") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[3].v, "application/sdp") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[4].v, "332") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.headers[5].v, "Cool Lala") == RTSP_TRUE);
 }
 
 static void
@@ -197,6 +209,8 @@ test_rtsp_fail1(void)
   "abnormal-but-accepted   \r\n" \
   " : this is not ok with this implementation\r\n" \
   "\r\n";
+
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
 
   rtsp_reader_init(&reader, RTSP_TRUE);
 
@@ -226,6 +240,8 @@ test_rtsp_fail2(void)
 
   static const char* test_fail_msg4 = \
   "PLAY rtsp://test.rtsp.com\tRTSP/2.0\r\n";
+
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
 
   rtsp_reader_init(&reader, RTSP_TRUE);
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_fail_msg1, strlen(test_fail_msg1));
@@ -263,6 +279,8 @@ test_rtsp_fail3(void)
     // error is catched by EOL handler
     "RTSP/2.0\taaa\treason 1\r\n",
   };
+
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
 
   for(int i = 0; i < sizeof(test_msgs)/sizeof(char*); i++)
   {
