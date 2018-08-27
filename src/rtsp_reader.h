@@ -38,6 +38,7 @@ struct __rtsp_reader_t
 
   rtsp_state_handler    main_state;
   rtsp_state_handler    sub_state;
+  rtsp_state_handler    sub_eol_handler;
 
   rtsp_str_t    method;
   rtsp_str_t    uri;

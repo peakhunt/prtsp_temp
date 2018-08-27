@@ -142,7 +142,7 @@ test_rtsp_reader4(void)
   rtsp_reader_t   reader;
   int             ret;
   static const char* test_msg1 = \
-  "RTSP/2.0 100 Reason is blah blah blah\r\n"
+  "RTSP/2.0 100 Reason is blah blah blah \t\t blahblahblah  \t\t\r\n"
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -160,7 +160,8 @@ test_rtsp_reader4(void)
 
   CU_ASSERT(rtsp_str_cmp(&reader.ver, "RTSP/2.0") == RTSP_TRUE);
   CU_ASSERT(rtsp_str_cmp(&reader.code, "100") == RTSP_TRUE);
-  CU_ASSERT(rtsp_str_cmp(&reader.reason, "Reason is blah blah blah") == RTSP_TRUE);
+  //CU_ASSERT(rtsp_str_cmp(&reader.reason, "Reason is blah blah blah") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.reason, "Reason is blah blah blah \t\t blahblahblah  \t\t") == RTSP_TRUE);
 
   CU_ASSERT(reader.num_headers == 6);
   CU_ASSERT(rtsp_str_cmp(&reader.headers[0].h, "CSeq") == RTSP_TRUE);
@@ -178,7 +179,8 @@ test_rtsp_reader4(void)
   CU_ASSERT(rtsp_str_cmp(&reader.headers[5].v, "Cool Lala") == RTSP_TRUE);
 }
 
-static void test_rtsp_fail(void)
+static void
+test_rtsp_fail1(void)
 {
   rtsp_reader_t   reader;
   int             ret;
@@ -208,6 +210,72 @@ static void test_rtsp_fail(void)
   CU_ASSERT(ret != 0);
 }
 
+static void
+test_rtsp_fail2(void)
+{
+  rtsp_reader_t   reader;
+  int             ret;
+  static const char* test_fail_msg1 = \
+  "PLAY  rtsp://test.rtsp.com RTSP/2.0\r\n";
+
+  static const char* test_fail_msg2 = \
+  "PLAY\trtsp://test.rtsp.com RTSP/2.0\r\n";
+
+  static const char* test_fail_msg3 = \
+  "PLAY rtsp://test.rtsp.com  RTSP/2.0\r\n";
+
+  static const char* test_fail_msg4 = \
+  "PLAY rtsp://test.rtsp.com\tRTSP/2.0\r\n";
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_fail_msg1, strlen(test_fail_msg1));
+  CU_ASSERT(ret != 0);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_fail_msg2, strlen(test_fail_msg2));
+  CU_ASSERT(ret != 0);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_fail_msg3, strlen(test_fail_msg3));
+  CU_ASSERT(ret != 0);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_fail_msg4, strlen(test_fail_msg4));
+  CU_ASSERT(ret != 0);
+}
+
+static void
+test_rtsp_fail3(void)
+{
+  rtsp_reader_t   reader;
+  int             ret;
+  static const char* test_msgs[] = 
+  {
+    "RTSP/2.0  100 reason 1\r\n",
+    "RTSP/2.0 100  reason 1\r\n",
+    "RTSP/2.0 \t100 reason 1\r\n",
+    "RTSP/2.0 100\treason 1\r\n",
+    "RTSP/2.0 100 \treason 1\r\n",
+    "RTSP/2.0 1000 \treason 1\r\n",
+    "RTSP/2.0 aaa reason 1\r\n",
+    //this is interpreted as
+    //"RTSP/V2.0\taaa\treason" 1
+    "RTSP/2.0\taaa\treason 1\r\n",
+  };
+
+  for(int i = 0; i < sizeof(test_msgs)/sizeof(char*); i++)
+  {
+    rtsp_reader_init(&reader, RTSP_FALSE);
+    ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msgs[i], strlen(test_msgs[i]));
+    if(ret == 0)
+    {
+      printf("XXXX: %s\n", test_msgs[i]);
+    }
+    CU_ASSERT(ret != 0);
+  }
+}
+
+
 int
 main()
 {
@@ -229,7 +297,9 @@ main()
   CU_add_test(pSuite, "test_rtsp_reader2", test_rtsp_reader2);
   CU_add_test(pSuite, "test_rtsp_reader3", test_rtsp_reader3);
   CU_add_test(pSuite, "test_rtsp_reader4", test_rtsp_reader4);
-  CU_add_test(pSuite, "test_rtsp_fail", test_rtsp_fail);
+  CU_add_test(pSuite, "test_rtsp_fail1", test_rtsp_fail1);
+  CU_add_test(pSuite, "test_rtsp_fail2", test_rtsp_fail2);
+  CU_add_test(pSuite, "test_rtsp_fail3", test_rtsp_fail3);
 
   /* Run all tests using the basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);

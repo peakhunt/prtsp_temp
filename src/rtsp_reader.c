@@ -1,5 +1,16 @@
 #include <stdio.h>
+#include <ctype.h>
 #include "rtsp_reader.h"
+
+
+/*
+   XXX basic idea
+
+   a) main_state only concerns itself with line & LWS/SWS handling.
+   b) detailed checks/translations are handled in sub states.
+   c) that's all!
+
+*/
 
 
 //
@@ -18,9 +29,18 @@
   rd->ndx++;\
 }
 
-#define RTSP_EXEC_SUB_SATTE(rd, c)\
+#define RTSP_EXEC_SUB_STATE(rd, c)\
 {\
   int __ret = rd->sub_state(rd, c);\
+  if(__ret != 0)\
+  {\
+    return __ret;\
+  }\
+}
+
+#define RTSP_EXEC_SUB_EOL(rd, c)\
+{\
+  int __ret = rd->sub_eol_handler(rd, c);\
   if(__ret != 0)\
   {\
     return __ret;\
@@ -67,6 +87,7 @@ static int rtsp_reader_req_line_state_uri_begin(rtsp_reader_t* rd, uint8_t c);
 static int rtsp_reader_req_line_state_uri_middle(rtsp_reader_t* rd, uint8_t c);
 static int rtsp_reader_req_line_state_ver_begin(rtsp_reader_t* rd, uint8_t c);
 static int rtsp_reader_req_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_req_line_eol_handler(rtsp_reader_t* rd, uint8_t c);
 
 static int
 rtsp_reader_req_line_state_method_begin(rtsp_reader_t* rd, uint8_t c)
@@ -128,6 +149,11 @@ rtsp_reader_req_line_state_uri_middle(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
+  if(c == '\t')
+  {
+    RTSP_ERR(rd, -101, "HT at rtsp_reader_req_line_state_uri_middle");
+  }
+
   rd->uri.len++;
   RTSP_PUSH(rd, c);
   return 0;
@@ -163,6 +189,12 @@ rtsp_reader_req_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
   return 0;
 }
 
+static int
+rtsp_reader_req_line_eol_handler(rtsp_reader_t* rd, uint8_t c)
+{
+  return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // response line parsing handlers
@@ -174,6 +206,7 @@ static int rtsp_reader_rsp_line_state_code_begin(rtsp_reader_t* rd, uint8_t c);
 static int rtsp_reader_rsp_line_state_code_middle(rtsp_reader_t* rd, uint8_t c);
 static int rtsp_reader_rsp_line_state_reason_begin(rtsp_reader_t* rd, uint8_t c);
 static int rtsp_reader_rsp_line_state_reason_middle(rtsp_reader_t* rd, uint8_t c);
+static int rtsp_reader_rsp_line_eol_handler(rtsp_reader_t* rd, uint8_t c);
 
 static int
 rtsp_reader_rsp_line_state_ver_begin(rtsp_reader_t* rd, uint8_t c)
@@ -208,7 +241,7 @@ rtsp_reader_rsp_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
 static int
 rtsp_reader_rsp_line_state_code_begin(rtsp_reader_t* rd, uint8_t c)
 {
-  if(is_rfc7826_token(c) == RTSP_TRUE)
+  if(isdigit(c))
   {
     rd->code.ptr = &rd->msg[rd->ndx];
     rd->code.len = 1;
@@ -230,9 +263,14 @@ rtsp_reader_rsp_line_state_code_middle(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
-  rd->code.len++;
-  RTSP_PUSH(rd, c);
-  return 0;
+  if(isdigit(c))
+  {
+    rd->code.len++;
+    RTSP_PUSH(rd, c);
+    return 0;
+  }
+
+  RTSP_ERR(rd, -101, "invalid character in rtsp_reader_rsp_line_state_code_middle");
 }
 
 static int
@@ -256,6 +294,21 @@ rtsp_reader_rsp_line_state_reason_middle(rtsp_reader_t* rd, uint8_t c)
 {
   rd->reason.len++;
   RTSP_PUSH(rd, c);
+  return 0;
+}
+
+static int
+rtsp_reader_rsp_line_eol_handler(rtsp_reader_t* rd, uint8_t c)
+{
+  if(rd->code.len != 3)
+  {
+    RTSP_ERR(rd, -101, "code length is not zero");
+  }
+
+  if(rd->reason.len == 0)
+  {
+    RTSP_ERR(rd, -101, "empty reason phrase");
+  }
   return 0;
 }
 
@@ -392,7 +445,7 @@ rtsp_reader_start_line_begin(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
-  RTSP_EXEC_SUB_SATTE(rd, c);
+  RTSP_EXEC_SUB_STATE(rd, c);
   rd->main_state = rtsp_reader_start_line_middle;
 
   return 0;
@@ -419,7 +472,7 @@ rtsp_reader_start_line_middle(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
-  RTSP_EXEC_SUB_SATTE(rd, c);
+  RTSP_EXEC_SUB_STATE(rd, c);
 
   return 0;
 }
@@ -429,6 +482,8 @@ rtsp_reader_start_line_end(rtsp_reader_t* rd, uint8_t c)
 {
   if(c == '\n')
   {
+    RTSP_EXEC_SUB_EOL(rd, c);
+
     rd->main_state = rtsp_reader_header_line_begin;
     return 0;
   }
@@ -449,7 +504,7 @@ rtsp_reader_header_line_begin(rtsp_reader_t* rd, uint8_t c)
   rd->colon_parsed = RTSP_FALSE;
 
   rd->sub_state = rtsp_reader_header_state_header_name_begin;
-  RTSP_EXEC_SUB_SATTE(rd, c);
+  RTSP_EXEC_SUB_STATE(rd, c);
 
   rd->main_state = rtsp_reader_header_line_middle;
 
@@ -492,7 +547,7 @@ rtsp_reader_header_line_begin_or_sws(rtsp_reader_t* rd, uint8_t c)
   //
   rd->colon_parsed = RTSP_FALSE;
   rd->sub_state = rtsp_reader_header_state_header_name_begin;
-  RTSP_EXEC_SUB_SATTE(rd, c);
+  RTSP_EXEC_SUB_STATE(rd, c);
 
   rd->main_state = rtsp_reader_header_line_middle;
 
@@ -512,7 +567,7 @@ rtsp_reader_header_line_sws(rtsp_reader_t* rd, uint8_t c)
   // line continuation end
   // LWS is replaced with single SP
   //
-  RTSP_EXEC_SUB_SATTE(rd, ' ');
+  RTSP_EXEC_SUB_STATE(rd, ' ');
 
   if(c == '\r')
   {
@@ -521,7 +576,7 @@ rtsp_reader_header_line_sws(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
-  RTSP_EXEC_SUB_SATTE(rd, c);
+  RTSP_EXEC_SUB_STATE(rd, c);
   rd->main_state = rtsp_reader_header_line_middle;
   return 0;
 }
@@ -535,7 +590,7 @@ rtsp_reader_header_line_middle(rtsp_reader_t* rd, uint8_t c)
     return 0;
   }
 
-  RTSP_EXEC_SUB_SATTE(rd, c);
+  RTSP_EXEC_SUB_STATE(rd, c);
   return 0;
 }
 
@@ -592,10 +647,12 @@ rtsp_reader_init(rtsp_reader_t* rd, uint8_t req)
   if(req == RTSP_TRUE)
   {
     rd->sub_state       = rtsp_reader_req_line_state_method_begin;
+    rd->sub_eol_handler = rtsp_reader_req_line_eol_handler;
   }
   else
   {
     rd->sub_state       = rtsp_reader_rsp_line_state_ver_begin;
+    rd->sub_eol_handler = rtsp_reader_rsp_line_eol_handler;
   }
 
   rd->err_msg       = NULL;
@@ -607,7 +664,13 @@ rtsp_reader_init(rtsp_reader_t* rd, uint8_t req)
 
   rd->method.len    = 0;
   rd->uri.len       = 0;
+
+  rd->code.len      = 0;
+  rd->reason.len    = 0;
+
   rd->ver.len       = 0;
+
+  rd->num_headers   = 0;
 }
 
 int
