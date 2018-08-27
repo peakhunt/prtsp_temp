@@ -258,8 +258,9 @@ test_rtsp_fail3(void)
     "RTSP/2.0 100 \treason 1\r\n",
     "RTSP/2.0 1000 \treason 1\r\n",
     "RTSP/2.0 aaa reason 1\r\n",
-    //this is interpreted as
-    //"RTSP/V2.0\taaa\treason" 1
+    // this is interpreted as
+    // "RTSP/V2.0\taaa\treason" 1
+    // error is catched by EOL handler
     "RTSP/2.0\taaa\treason 1\r\n",
   };
 

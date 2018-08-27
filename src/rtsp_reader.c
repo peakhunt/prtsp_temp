@@ -8,15 +8,12 @@
 
    a) main_state only concerns itself with line & LWS/SWS handling.
    b) detailed checks/translations are handled in sub states.
-   c) that's all!
+   c) in reqeust/response line handling, special EOL event is triggered.
+      In that handler, we can check validity of request/response start line
+   d) that's all!
 
 */
 
-
-//
-// -1 : parsing state error
-// -2 : push overflow error
-//
 
 #define RTSP_PUSH(rd, c)\
 {\
