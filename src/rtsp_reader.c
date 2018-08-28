@@ -54,11 +54,37 @@
   return ret;\
 }
 
+static const char* _rtsp_methods[] =
+{
+  "DESCRIBE",
+  "GET_PARAMETER",
+  "OPTIONS",
+  "PAUSE",
+  "PLAY",
+  "PLAY_NOTIFY",
+  "REDIRECT",
+  "SETUP",
+  "SET_PARAMETER",
+  "TEARDOWN",
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // utilities
 //
 ////////////////////////////////////////////////////////////////////////////////
+static uint8_t
+is_rtsp_method(rtsp_str_t* m)
+{
+  for(int i = 0; i < sizeof(_rtsp_methods)/sizeof(char*); i++)
+  {
+    if(rtsp_str_cmp(m, _rtsp_methods[i]) == RTSP_TRUE)
+    {
+      return RTSP_TRUE;
+    }
+  }
+  return RTSP_FALSE;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -199,6 +225,11 @@ rtsp_reader_req_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
 static inline int
 rtsp_reader_req_line_eol_handler(rtsp_reader_t* rd, uint8_t c)
 {
+  if(is_rtsp_method(&rd->current.method) != RTSP_TRUE)
+  {
+    RTSP_ERR(rd, -101, "Unknown RTSP Method");
+  }
+
   if(rtsp_str_casecmp(&rd->current.ver, "RTSP/2.0") != RTSP_TRUE)
   {
     RTSP_ERR(rd, -101, "Invalid RTSP Version in request");

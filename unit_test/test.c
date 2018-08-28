@@ -116,7 +116,7 @@ test_rtsp_reader3(void)
   rtsp_reader_t   reader;
   int             ret;
   static const char* test_msg1 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "SETUP rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -134,7 +134,7 @@ test_rtsp_reader3(void)
   ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
   CU_ASSERT(ret == 0);
 
-  CU_ASSERT(rtsp_str_cmp(&reader.current.method, "ANNOUNCE") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.method, "SETUP") == RTSP_TRUE);
   CU_ASSERT(rtsp_str_cmp(&reader.current.uri, "rtsp://example.com/media.mp4") == RTSP_TRUE);
   CU_ASSERT(rtsp_str_cmp(&reader.current.ver, "RTSP/2.0") == RTSP_TRUE);
 
@@ -308,7 +308,7 @@ test_rtsp_content_length(void)
   int             ret;
 
   static const char* test_msg1 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "PLAY rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -328,7 +328,7 @@ test_rtsp_content_length(void)
   "0123456789";
 
   static const char* test_msg3 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "PLAY rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -336,7 +336,7 @@ test_rtsp_content_length(void)
   "\r\n";
 
   static const char* test_msg4 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "PLAY rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -381,7 +381,7 @@ test_rtsp_rx_callback(void)
   int             ret;
 
   static const char* test_msg1 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "PLAY rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -401,7 +401,7 @@ test_rtsp_rx_callback(void)
   "0123456789";
 
   static const char* test_msg3 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "PLAY rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
@@ -409,7 +409,7 @@ test_rtsp_rx_callback(void)
   "\r\n";
 
   static const char* test_msg4 = \
-  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "PLAY rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
   "CSeq: 7\r\n" \
   "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
   "Session: 12345678\r\n" \
