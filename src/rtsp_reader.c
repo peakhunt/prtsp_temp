@@ -199,6 +199,10 @@ rtsp_reader_req_line_state_ver_middle(rtsp_reader_t* rd, uint8_t c)
 static inline int
 rtsp_reader_req_line_eol_handler(rtsp_reader_t* rd, uint8_t c)
 {
+  if(rtsp_str_casecmp(&rd->current.ver, "RTSP/2.0") != RTSP_TRUE)
+  {
+    RTSP_ERR(rd, -101, "Invalid RTSP Version in request");
+  }
   return 0;
 }
 
@@ -307,6 +311,11 @@ rtsp_reader_rsp_line_state_reason_middle(rtsp_reader_t* rd, uint8_t c)
 static inline int
 rtsp_reader_rsp_line_eol_handler(rtsp_reader_t* rd, uint8_t c)
 {
+  if(rtsp_str_casecmp(&rd->current.ver, "RTSP/2.0") != RTSP_TRUE)
+  {
+    RTSP_ERR(rd, -101, "Invalid RTSP Version in response");
+  }
+
   if(rd->current.code.len != 3)
   {
     RTSP_ERR(rd, -101, "code length is not zero");
@@ -618,6 +627,9 @@ rtsp_reader_headers_end(rtsp_reader_t* rd, uint8_t c)
 {
   if(c == '\n')
   {
+    //
+    // check Content-Length
+    //
     rtsp_hv_t*    cl;
 
     cl = rtsp_msg_get_header(&rd->current, "Content-Length");
@@ -630,6 +642,7 @@ rtsp_reader_headers_end(rtsp_reader_t* rd, uint8_t c)
     {
       rd->sub_state  = NULL;
       rd->main_state = rtsp_reader_body;
+      rd->current.body.ptr = &rd->current.msg[rd->ndx];
     }
     else
     {

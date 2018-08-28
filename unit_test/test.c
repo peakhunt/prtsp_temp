@@ -7,15 +7,22 @@
 
 #include "rtsp_reader.h"
 
+
+static uint8_t _got_rx;
+static rtsp_msg_t   _msg;
+
+static void
+dummy_rtsp_rx_callback(rtsp_reader_t* rd, rtsp_msg_t* m)
+{
+  _got_rx = 1;
+  rtsp_msg_deep_copy(&_msg, m);
+}
+
 int init_suite_success(void) { return 0; }
 int init_suite_failure(void) { return -1; }
 int clean_suite_success(void) { return 0; }
 int clean_suite_failure(void) { return -1; }
 
-static void
-dummy_rtsp_rx_callback(rtsp_reader_t* rd, rtsp_msg_t* m)
-{
-}
 
 static void
 test_rtsp_reader1(void)
@@ -294,6 +301,157 @@ test_rtsp_fail3(void)
   }
 }
 
+static void
+test_rtsp_content_length(void)
+{
+  rtsp_reader_t   reader;
+  int             ret;
+
+  static const char* test_msg1 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 10     \r\n" \
+  "\r\n" \
+  "0123456789";
+
+  static const char* test_msg2 = \
+  "RTSP/2.0 100 OK\r\n"
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 10\r\n" \
+  "\r\n" \
+  "0123456789";
+
+  static const char* test_msg3 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "\r\n";
+
+  static const char* test_msg4 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 0     \r\n" \
+  "\r\n";
+
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
+  CU_ASSERT(ret == 0);
+
+  CU_ASSERT(rtsp_str_cmp(&reader.current.uri, "rtsp://example.com/media.mp4") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.ver, "RTSP/2.0") == RTSP_TRUE);
+  CU_ASSERT(reader.current.body.len == 10);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.body, "0123456789") == RTSP_TRUE);
+
+  rtsp_reader_init(&reader, RTSP_FALSE);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg2, strlen(test_msg2));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(reader.current.body.len == 10);
+  CU_ASSERT(rtsp_str_cmp(&reader.current.body, "0123456789") == RTSP_TRUE);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg3, strlen(test_msg3));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(reader.current.body.len == 0);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg4, strlen(test_msg4));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(reader.current.body.len == 0);
+}
+
+static void
+test_rtsp_rx_callback(void)
+{
+  rtsp_reader_t   reader;
+  int             ret;
+
+  static const char* test_msg1 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 10     \r\n" \
+  "\r\n" \
+  "0123456789";
+
+  static const char* test_msg2 = \
+  "RTSP/2.0 100 OK\r\n"
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 10\r\n" \
+  "\r\n" \
+  "0123456789";
+
+  static const char* test_msg3 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "\r\n";
+
+  static const char* test_msg4 = \
+  "ANNOUNCE rtsp://example.com/media.mp4 RTSP/2.0\r\n" \
+  "CSeq: 7\r\n" \
+  "Date: 23 Jan 1997 15:35:06 GMT\r\n" \
+  "Session: 12345678\r\n" \
+  "Content-Type: application/sdp\r\n" \
+  "Content-Length: 0     \r\n" \
+  "\r\n";
+
+  reader.rtsp_rx_cb = dummy_rtsp_rx_callback;
+  _got_rx = 0;
+  rtsp_reader_init(&reader, RTSP_TRUE);
+
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg1, strlen(test_msg1));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(_got_rx == 1);
+
+  CU_ASSERT(rtsp_str_cmp(&_msg.uri, "rtsp://example.com/media.mp4") == RTSP_TRUE);
+  CU_ASSERT(rtsp_str_cmp(&_msg.ver, "RTSP/2.0") == RTSP_TRUE);
+  CU_ASSERT(_msg.body.len == 10);
+  CU_ASSERT(rtsp_str_cmp(&_msg.body, "0123456789") == RTSP_TRUE);
+
+  rtsp_reader_init(&reader, RTSP_FALSE);
+  _got_rx = 0;
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg2, strlen(test_msg2));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(_got_rx == 1);
+  CU_ASSERT(_msg.body.len == 10);
+  CU_ASSERT(rtsp_str_cmp(&_msg.body, "0123456789") == RTSP_TRUE);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  _got_rx = 0;
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg3, strlen(test_msg3));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(_got_rx == 1);
+  CU_ASSERT(_msg.body.len == 0);
+
+  rtsp_reader_init(&reader, RTSP_TRUE);
+  _got_rx = 0;
+  ret = rtsp_reader_handle_input(&reader, (uint8_t*)test_msg4, strlen(test_msg4));
+  CU_ASSERT(ret == 0);
+  CU_ASSERT(_got_rx == 1);
+  CU_ASSERT(_msg.body.len == 0);
+}
 
 int
 main()
@@ -319,6 +477,8 @@ main()
   CU_add_test(pSuite, "test_rtsp_fail1", test_rtsp_fail1);
   CU_add_test(pSuite, "test_rtsp_fail2", test_rtsp_fail2);
   CU_add_test(pSuite, "test_rtsp_fail3", test_rtsp_fail3);
+  CU_add_test(pSuite, "test_rtsp_content_length", test_rtsp_content_length);
+  CU_add_test(pSuite, "test_rtsp_rx_callback", test_rtsp_rx_callback);
 
   /* Run all tests using the basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);

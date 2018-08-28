@@ -113,12 +113,14 @@ static inline uint64_t
 rsp_str_to_u64(rtsp_str_t* rtsp_str)
 {
   uint64_t    l = 0;
+  uint32_t    mul = 1;
 
   for(uint32_t i = 0; i < rtsp_str->len; i++)
   {
     if(isdigit(rtsp_str->ptr[rtsp_str->len - i - 1]))
     {
-      l += (rtsp_str->ptr[rtsp_str->len - i - 1] - '0');
+      l += ((rtsp_str->ptr[rtsp_str->len - i - 1] - '0') * mul);
+      mul *= 10;
     }
   }
   return l;
